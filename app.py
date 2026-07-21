@@ -21,24 +21,38 @@ if "usuario_logado" not in st.session_state:
 
 if st.session_state.usuario_logado is None:
     st.title("🔒 Login")
-    email = st.text_input("E-mail")
+    email = st.text_input("E-mail").strip()
     senha = st.text_input("Senha", type="password")
     c1, c2 = st.columns(2)
+    
     if c1.button("Entrar"):
-        try:
-            resposta = supabase.auth.sign_in_with_password({"email": email, "password": senha})
-            st.session_state.usuario_logado = resposta.user
-            st.rerun()
-        except Exception:
-            st.error("E-mail/Senha inválidos.")
-    if c2.button("Criar Conta"):
-        try:
-            supabase.auth.sign_up({"email": email, "password": senha})
-            st.success("Conta criada! Tente logar.")
-        except Exception as e:
-            st.error(f"Erro: {e}")
-    st.stop()
+        if not email or not senha:
+            st.warning("Preencha e-mail e senha.")
+        else:
+            try:
+                resposta = supabase.auth.sign_in_with_password({"email": email, "password": senha})
+                st.session_state.usuario_logado = resposta.user
+                st.rerun()
+            except Exception as e:
+                st.error("E-mail ou senha incorretos.")
 
+    if c2.button("Criar Conta"):
+        if not email or not senha:
+            st.warning("Preencha e-mail e senha para criar a conta.")
+        elif len(senha) < 6:
+            st.warning("A senha precisa ter pelo menos 6 caracteres.")
+        else:
+            try:
+                # Método atualizado e compatível do Supabase Python
+                resposta = supabase.auth.sign_up({"email": email, "password": senha})
+                
+                if resposta.user:
+                    st.success("Account criada com sucesso! Tente clicar em 'Entrar' agora.")
+                else:
+                    st.info("Cadastro solicitado. Verifique seu e-mail se necessário.")
+            except Exception as e:
+                st.error(f"Erro no cadastro: {e}")
+    st.stop()
 # --- BUSCA DE DADOS GERAIS ---
 @st.cache_data(ttl=60)
 def carregar_dados():
