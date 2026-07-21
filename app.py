@@ -8,92 +8,120 @@ import streamlit as st
 
 st.set_page_config(page_title="Gestão de Banca", layout="wide")
 
+import streamlit as st
+
+st.set_page_config(page_title="Gestão de Banca", layout="wide")
+
 # ==========================================
-# DESIGN VIBECODE SYSTEM (CSS CUSTOMIZADO)
+# DESIGN VIBECODE SYSTEM (CSS COMPLETO)
 # ==========================================
 st.markdown("""
-
-/* Ajuste de tamanho dos textos da Barra Lateral */
-    
-    /* 1. Nome/E-mail do usuário no topo da sidebar */
-    [data-testid="stSidebar"] .stMarkdown p {
-        font-size: 18px !important;
-        font-weight: 600 !important;
-    }
-
-    /* 2. Título da seção (ex: 'Navegação') */
-    [data-testid="stSidebar"] label {
-        font-size: 18px !important;
-        font-weight: 700 !important;
-        color: #60A5FA !important; /* Azul neon para destacar */
-    }
-
-    /* 3. Opções do menu (Radio Buttons: 1. Dashboard, 2. Nova Entrada, etc) */
-    [data-testid="stSidebar"] div[role="radiogroup"] label p {
-        font-size: 17px !important;
-        font-weight: 500 !important;
-    }
-
-    /* 4. Botão 'Sair' na barra lateral */
-    [data-testid="stSidebar"] .stButton > button {
-        font-size: 16px !important;
-        padding: 12px 20px !important;
-    }
-
 <style>
     /* Importação de fonte moderna e clean */
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-    /* Reset global de tipografia e fundo da aplicação */
+    /* --------------------------------------------------
+       1. GLOBAL & ESTRUTURA PRINCIPAL
+    -------------------------------------------------- */
     html, body, [class*="css"], .stApp {
         font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
         background-color: #07090E !important; /* Preto puro/profundo */
         color: #E2E8F0 !important;
     }
 
-    /* Estilização da Barra Lateral (Sidebar) */
+    /* Ocultar elementos nativos desnecessários */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+
+    /* --------------------------------------------------
+       2. BARRA LATERAL (SIDEBAR) - TEXTOS EXPANDIDOS
+    -------------------------------------------------- */
     [data-testid="stSidebar"] {
         background-color: #0B0E14 !important;
         border-right: 1px solid #1E293B !important;
     }
 
-    /* Cards e Containers com estética Dark/Glassmorphism */
+    /* Nome / E-mail do usuário no topo da sidebar */
+    [data-testid="stSidebar"] .stMarkdown p {
+        font-size: 18px !important;
+        font-weight: 600 !important;
+        color: #F8FAFC !important;
+    }
+
+    /* Títulos dentro da barra lateral (ex: 'Navegação') */
+    [data-testid="stSidebar"] label {
+        font-size: 18px !important;
+        font-weight: 700 !important;
+        color: #60A5FA !important; /* Azul neon de destaque */
+        letter-spacing: 0.5px !important;
+    }
+
+    /* Opções do Menu de Navegação (Radio Buttons) */
+    [data-testid="stSidebar"] div[role="radiogroup"] label p {
+        font-size: 18px !important;
+        font-weight: 500 !important;
+        color: #CBD5E1 !important;
+        padding: 4px 0 !important;
+    }
+
+    /* Item selecionado no menu */
+    [data-testid="stSidebar"] div[role="radiogroup"] label[data-baseweb="radio"]:has(input:checked) p {
+        color: #60A5FA !important;
+        font-weight: 700 !important;
+    }
+
+    /* Botão 'Sair' na Barra Lateral */
+    [data-testid="stSidebar"] .stButton > button {
+        font-size: 16px !important;
+        padding: 12px 20px !important;
+        margin-top: 20px !important;
+    }
+
+    /* --------------------------------------------------
+       3. METRICAS E CARDS DE KPIS
+    -------------------------------------------------- */
     div[data-testid="stMetric"], .stCard {
         background: linear-gradient(135deg, #0F172A 0%, #0B0F17 100%) !important;
         border: 1px solid #1E293B !important;
         border-radius: 12px !important;
-        padding: 16px 20px !important;
+        padding: 18px 22px !important;
         box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.5) !important;
         transition: transform 0.2s ease, border-color 0.2s ease !important;
     }
     
     div[data-testid="stMetric"]:hover {
-        transform: translateY(-2px);
+        transform: translateY(-3px);
         border-color: #2563EB !important;
     }
 
-    /* Estilização das métricas/KPIs */
+    /* Rótulo/Título do KPI */
     div[data-testid="stMetricLabel"] p {
         color: #94A3B8 !important;
         font-size: 13px !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
         text-transform: uppercase !important;
-        letter-spacing: 0.5px !important;
+        letter-spacing: 0.6px !important;
     }
 
+    /* Valor Numérico Principal do KPI */
     div[data-testid="stMetricValue"] {
         color: #F8FAFC !important;
+        font-size: 28px !important;
         font-weight: 800 !important;
     }
 
-    /* Botões Dinâmicos (Efeito Glow Vibecode) */
+    /* --------------------------------------------------
+       4. BOTÕES DINÂMICOS (EFEITO GLOW VIBECODE)
+    -------------------------------------------------- */
     .stButton > button {
         width: 100%;
         background: linear-gradient(135deg, #1E3A8A 0%, #1E293B 100%) !important;
         color: #F8FAFC !important;
         border: 1px solid #2563EB !important;
         border-radius: 8px !important;
-        padding: 10px 20px !important;
+        padding: 12px 24px !important;
+        font-size: 15px !important;
         font-weight: 700 !important;
         letter-spacing: 0.3px !important;
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -112,31 +140,37 @@ st.markdown("""
         transform: translateY(0px) scale(0.98) !important;
     }
 
-    /* Input Fields (Caixas de texto e números) */
+    /* --------------------------------------------------
+       5. INPUTS, FORMULÁRIOS E SELECTBOXES
+    -------------------------------------------------- */
     .stTextInput input, .stNumberInput input, .stSelectbox > div > div {
         background-color: #0F172A !important;
         color: #F8FAFC !important;
         border: 1px solid #1E293B !important;
         border-radius: 8px !important;
+        padding: 10px 14px !important;
         transition: border-color 0.2s ease !important;
     }
 
     .stTextInput input:focus, .stNumberInput input:focus {
         border-color: #3B82F6 !important;
-        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25) !important;
     }
 
-    /* Tabelas e Dataframes */
+    /* Rótulos dos formulários */
+    .stWidgetLabel p {
+        color: #CBD5E1 !important;
+        font-weight: 600 !important;
+    }
+
+    /* --------------------------------------------------
+       6. TABELAS E DATAFRAMES
+    -------------------------------------------------- */
     [data-testid="stDataFrame"] {
         background-color: #0F172A !important;
         border: 1px solid #1E293B !important;
         border-radius: 10px !important;
     }
-
-    /* Limpeza de rodapés e menus padrões */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
