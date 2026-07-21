@@ -132,7 +132,7 @@ if "access_token" not in st.session_state:
     st.session_state.access_token = None
 
 if st.session_state.usuario_logado is None:
-    st.title("🔒 Login")
+    st.title(" Login")
     email = st.text_input("E-mail").strip()
     senha = st.text_input("Senha", type="password")
     c1, c2 = st.columns(2)
@@ -299,7 +299,7 @@ elif menu == "2. Nova Entrada":
                 retorno_bruto = st.number_input("Valor Exato do Cashout (R$)", min_value=0.0, step=0.1)
                 
             if estrategia in ["Duplo Green", "Surebet"]:
-                st.warning("⚠️ Entrada marcada como estratégia múltipla.")
+                st.warning("Entrada marcada como estratégia múltipla.")
                 
         elif tipo_entrada == "Cassino":
             estrategia = st.selectbox("Estratégia", ["Deposite e ganhe", "Deposite e jogue", "Bug", "Missão", "Outros"])
@@ -336,7 +336,7 @@ elif menu == "2. Nova Entrada":
 # SEÇÃO 3: ENTRADAS PENDENTES
 # ==========================================
 elif menu == "3. Entradas Pendentes":
-    st.title("⏳ Entradas Pendentes / A Classificar")
+    st.title(" Entradas Pendentes / A Classificar")
     
     if df.empty or 'resultado' not in df.columns:
         st.info("Nenhuma entrada cadastrada.")
@@ -344,7 +344,7 @@ elif menu == "3. Entradas Pendentes":
         df_pendentes = df[df['resultado'] == 'Pendente']
         
         if df_pendentes.empty:
-            st.success("🎉 Nenhuma aposta pendente no momento! Todas estão classificadas.")
+            st.success(" Nenhuma aposta pendente no momento! Todas estão classificadas.")
         else:
             st.warning(f"Existem **{len(df_pendentes)}** apostas aguardando resultado.")
             
@@ -398,12 +398,12 @@ elif menu == "3. Entradas Pendentes":
 # SEÇÃO 4: HISTÓRICO E FILTROS
 # ==========================================
 elif menu == "4. Histórico e Filtros":
-    st.title("📋 Histórico Geral e Filtros")
+    st.title("Histórico Geral e Filtros")
     
     if df.empty:
         st.info("Nenhuma entrada cadastrada.")
     else:
-        st.subheader("🔍 Filtros Avançados (Multisseleção)")
+        st.subheader(" Filtros Avançados (Multisseleção)")
         c1, c2, c3 = st.columns(3)
         
         filtro_tipo = c1.multiselect("Modalidade/Tipo", df['tipo'].unique(), default=df['tipo'].unique())
