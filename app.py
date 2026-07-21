@@ -8,7 +8,7 @@ st.set_page_config(page_title="Gestão de Banca", layout="wide")
 
 # CONEXÃO COM O SUPABASE
 SUPABASE_URL = "https://nsrcevzonxssbtwtmuro.supabase.co"
-SUPABASE_KEY = "SUA_CHAVE_ANON_AQUI"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zcmNldnpvbnhzc2J0d3RtdXJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2MTA5NzgsImV4cCI6MjEwMDE4Njk3OH0.PFJuxdg8rIKxwn5glfCeypdeuLfL0zhmPKYliesVA98"
 
 @st.cache_resource
 def init_supabase():
