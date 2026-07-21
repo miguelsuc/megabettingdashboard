@@ -23,19 +23,6 @@ from datetime import datetime, timezone
 
 st.set_page_config(page_title="Gestão de Banca", layout="wide")
 
-# CONEXÃO COM O SUPABASE
-SUPABASE_URL = "https://nsrcevzonxssbtwtmuro.supabase.co"
-SUPABASE_KEY = "SUA_CHAVE_ANON_AQUI"
-
-@st.cache_resource
-def init_supabase():
-    return create_client(
-        supabase_url=SUPABASE_URL.strip(),
-        supabase_key=SUPABASE_KEY.strip()
-    )
-
-supabase = init_supabase()
-
 # --- SESSÃO E LOGIN ---
 if "usuario_logado" not in st.session_state:
     st.session_state.usuario_logado = None
