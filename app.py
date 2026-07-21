@@ -356,21 +356,21 @@ elif menu == "2. Nova Entrada":
                 retorno_bruto = st.number_input("Retorno Total (Green) R$", min_value=0.0)
             elif resultado == "Red":
                 retorno_bruto = 0.0
-                st.info("Retorno será R$ 0.00")
+                st.info("Retorno definido como R$ 0.00 (Red Total)")
             elif resultado == "Cashout Parcial":
                 retorno_bruto = st.number_input("Valor Exato do Cashout (R$)", min_value=0.0, step=0.1)
                 
             if estrategia in ["Duplo Green", "Surebet"]:
-                st.warning("Entrada marcada como estratégia múltipla.")
+                st.warning("⚠️ Entrada marcada como estratégia múltipla.")
                 
         elif tipo_entrada == "Cassino":
             estrategia = st.selectbox("Estratégia", ["Deposite e ganhe", "Deposite e jogue", "Bug", "Missão", "Outros"])
             resultado = st.selectbox("Resultado Inicial", ["Pendente", "Concluído (Green)", "Red"])
             
             if resultado == "Concluído (Green)":
-                retorno_bruto = st.number_input("Retorno Total R$", min_value=0.0)
+                retorno_bruto = st.number_input("Valor Final / Retorno Total (R$)", min_value=0.0, step=1.0, help="Informe o valor total resgatado/final após a entrada.")
             elif resultado == "Red":
-                retorno_bruto = 0.0
+                retorno_bruto = st.number_input("Valor Final / Restante da Banca (R$)", min_value=0.0, step=1.0, help="Caso o Red não tenha sido total, informe o valor final que sobrou. Se perdeu tudo, mantenha 0.00.")
 
         if st.form_submit_button("Salvar Entrada"):
             dados = {
