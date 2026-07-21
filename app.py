@@ -232,7 +232,7 @@ if st.sidebar.button("Sair"):
 # SEÇÃO 1: DASHBOARD E KPIs
 # ==========================================
 if menu == "1. Dashboard & KPIs":
-    st.title("📊 Indicadores de Desempenho")
+    st.title("Resultados")
     
     if df.empty:
         st.info("Sem dados cadastrados. Clique na opção '2. Nova Entrada' no menu da esquerda para registrar!")
