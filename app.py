@@ -331,48 +331,51 @@ elif menu == "2. Nova Entrada":
     
     tipo_entrada = st.radio("Selecione a Modalidade", ["Sports Betting", "Cassino"], horizontal=True)
     
-    with st.form("form_entrada"):
-        casa_de_aposta = st.text_input("Qual Casa de Aposta?")
-        dono_da_conta = st.text_input("Dono da Conta")
-        valor_investido = st.number_input("Valor Investido (R$)", min_value=0.01, step=1.0)
+    casa_de_aposta = st.text_input("Qual Casa de Aposta?")
+    dono_da_conta = st.text_input("Dono da Conta")
+    valor_investido = st.number_input("Valor Investido (R$)", min_value=0.01, step=1.0)
+    
+    estrategia = ""
+    resultado = "Pendente"
+    retorno_bruto = 0.0
+    data_hora_manual = ""
+    
+    if tipo_entrada == "Sports Betting":
+        estrategia = st.selectbox("Estratégia", ["Cashout", "Punter", "Delay", "Duplo Green", "Surebet", "Bug", "Outros"])
         
-        estrategia = ""
-        resultado = "Pendente"
-        retorno_bruto = 0.0
-        data_hora_manual = ""
+        st.markdown("**Data e Hora do Jogo (Digitado Manualmente):**")
+        c_data, c_hora = st.columns(2)
+        data_str = c_data.text_input("Data (ex: 21/07/2026)", placeholder="ex: 21/07/2026")
+        hora_str = c_hora.text_input("Hora (ex: 16:00)", placeholder="ex: 16:00")
+        data_hora_manual = f"{data_str} {hora_str}".strip()
         
-        if tipo_entrada == "Sports Betting":
-            estrategia = st.selectbox("Estratégia", ["Cashout", "Punter", "Delay", "Duplo Green", "Surebet", "Bug", "Outros"])
+        resultado = st.selectbox("Resultado Inicial", ["Pendente", "Green", "Red", "Cashout Parcial"])
+        
+        if resultado == "Green":
+            retorno_bruto = st.number_input("Retorno Total (Green) R$", min_value=0.0)
+        elif resultado == "Red":
+            retorno_bruto = 0.0
+            st.info("Retorno definido como R$ 0.00 (Red Total)")
+        elif resultado == "Cashout Parcial":
+            retorno_bruto = st.number_input("Valor Exato do Cashout (R$)", min_value=0.0, step=0.1)
             
-            st.markdown("**Data e Hora do Jogo (Digitado Manualmente):**")
-            c_data, c_hora = st.columns(2)
-            data_str = c_data.text_input("Data (ex: 21/07/2026)", placeholder="ex: 21/07/2026")
-            hora_str = c_hora.text_input("Hora (ex: 16:00)", placeholder="ex: 16:00")
-            data_hora_manual = f"{data_str} {hora_str}".strip()
+        if estrategia in ["Duplo Green", "Surebet"]:
+            st.warning("⚠️ Entrada marcada como estratégia múltipla.")
             
-            resultado = st.selectbox("Resultado Inicial", ["Pendente", "Green", "Red", "Cashout Parcial"])
-            
-            if resultado == "Green":
-                retorno_bruto = st.number_input("Retorno Total (Green) R$", min_value=0.0)
-            elif resultado == "Red":
-                retorno_bruto = 0.0
-                st.info("Retorno definido como R$ 0.00 (Red Total)")
-            elif resultado == "Cashout Parcial":
-                retorno_bruto = st.number_input("Valor Exato do Cashout (R$)", min_value=0.0, step=0.1)
-                
-            if estrategia in ["Duplo Green", "Surebet"]:
-                st.warning("⚠️ Entrada marcada como estratégia múltipla.")
-                
-        elif tipo_entrada == "Cassino":
-            estrategia = st.selectbox("Estratégia", ["Deposite e ganhe", "Deposite e jogue", "Bug", "Missão", "Outros"])
-            resultado = st.selectbox("Resultado Inicial", ["Pendente", "Concluído (Green)", "Red"])
-            
-            if resultado == "Concluído (Green)":
-                retorno_bruto = st.number_input("Valor Final / Retorno Total (R$)", min_value=0.0, step=1.0, help="Informe o valor total resgatado/final após a entrada.")
-            elif resultado == "Red":
-                retorno_bruto = st.number_input("Valor Final / Restante da Banca (R$)", min_value=0.0, step=1.0, help="Caso o Red não tenha sido total, informe o valor final que sobrou. Se perdeu tudo, mantenha 0.00.")
+    elif tipo_entrada == "Cassino":
+        estrategia = st.selectbox("Estratégia", ["Deposite e ganhe", "Deposite e jogue", "Bug", "Missão", "Outros"])
+        resultado = st.selectbox("Resultado Inicial", ["Pendente", "Concluído (Green)", "Red"])
+        
+        # Exibição dinâmica imediata fora de container travado
+        if resultado == "Concluído (Green)":
+            retorno_bruto = st.number_input("Valor Final / Retorno Total (R$)", min_value=0.0, step=1.0, help="Informe o valor total resgatado/final após a entrada.")
+        elif resultado == "Red":
+            retorno_bruto = st.number_input("Valor Final / Restante da Banca (R$)", min_value=0.0, step=1.0, help="Se sobrou algum saldo, informe o valor final. Se perdeu tudo, mantenha 0.00.")
 
-        if st.form_submit_button("Salvar Entrada"):
+    if st.button("Salvar Entrada"):
+        if not casa_de_aposta or not dono_da_conta:
+            st.warning("Preencha a casa de aposta e o dono da conta.")
+        else:
             dados = {
                 "user_id": st.session_state.usuario_logado["id"],
                 "tipo": tipo_entrada,
@@ -398,7 +401,7 @@ elif menu == "2. Nova Entrada":
 # SEÇÃO 3: ENTRADAS PENDENTES
 # ==========================================
 elif menu == "3. Entradas Pendentes":
-    st.title(" Entradas Pendentes / A Classificar")
+    st.title("⏳ Entradas Pendentes / A Classificar")
     
     if df.empty or 'resultado' not in df.columns:
         st.info("Nenhuma entrada cadastrada.")
@@ -406,7 +409,7 @@ elif menu == "3. Entradas Pendentes":
         df_pendentes = df[df['resultado'] == 'Pendente']
         
         if df_pendentes.empty:
-            st.success(" Nenhuma aposta pendente no momento! Todas estão classificadas.")
+            st.success("🎉 Nenhuma aposta pendente no momento! Todas estão classificadas.")
         else:
             st.warning(f"Existem **{len(df_pendentes)}** apostas aguardando resultado.")
             
@@ -428,44 +431,43 @@ elif menu == "3. Entradas Pendentes":
             
             aposta_atual = df_pendentes[df_pendentes['id'] == id_selecionado].iloc[0]
             
-            with st.form("form_classificacao"):
-                st.write(f"**Atualizando:** {aposta_atual['casa_de_aposta']} ({aposta_atual['estrategia']}) - Investido: R$ {aposta_atual['valor_investido']:.2f}")
+            st.write(f"**Atualizando:** {aposta_atual['casa_de_aposta']} ({aposta_atual['estrategia']}) - Investido: R$ {aposta_atual['valor_investido']:.2f}")
+            
+            novo_resultado = st.selectbox("Novo Resultado", ["Green", "Concluído (Green)", "Red", "Cashout Parcial"])
+            
+            novo_retorno = 0.0
+            if novo_resultado in ["Green", "Concluído (Green)"]:
+                novo_retorno = st.number_input("Valor Total do Retorno (R$)", min_value=0.0, step=0.1)
+            elif novo_resultado == "Cashout Parcial":
+                novo_retorno = st.number_input("Valor Digitado do Cashout (R$)", min_value=0.0, step=0.01)
+            elif novo_resultado == "Red":
+                novo_retorno = st.number_input("Valor Final / Restante da Banca (R$)", min_value=0.0, step=0.1, help="Se sobrou saldo, informe aqui. Se perdeu tudo, mantenha 0.00.")
+            
+            if st.button("Confirmar Classificação"):
+                url = f"{SUPABASE_URL.rstrip('/')}/rest/v1/apostas?id=eq.{id_selecionado}"
+                patch_data = {
+                    "resultado": novo_resultado,
+                    "retorno_bruto": novo_retorno
+                }
+                res = requests.patch(url, json=patch_data, headers=get_headers())
                 
-                novo_resultado = st.selectbox("Novo Resultado", ["Green", "Red", "Cashout Parcial"])
-                
-                novo_retorno = 0.0
-                if novo_resultado == "Green":
-                    novo_retorno = st.number_input("Valor Total do Retorno (R$)", min_value=0.01, step=0.1)
-                elif novo_resultado == "Cashout Parcial":
-                    novo_retorno = st.number_input("Valor Digitado do Cashout (R$)", min_value=0.01, step=0.01)
-                elif novo_resultado == "Red":
-                    st.info("Retorno definido como R$ 0.00")
-                
-                if st.form_submit_button("Confirmar Classificação"):
-                    url = f"{SUPABASE_URL.rstrip('/')}/rest/v1/apostas?id=eq.{id_selecionado}"
-                    patch_data = {
-                        "resultado": novo_resultado,
-                        "retorno_bruto": novo_retorno
-                    }
-                    res = requests.patch(url, json=patch_data, headers=get_headers())
-                    
-                    if res.status_code in [200, 204]:
-                        st.success("Entrada classificada com sucesso!")
-                        carregar_dados.clear()
-                        st.rerun()
-                    else:
-                        st.error(f"Erro ao atualizar: {res.text}")
+                if res.status_code in [200, 204]:
+                    st.success("Entrada classificada com sucesso!")
+                    carregar_dados.clear()
+                    st.rerun()
+                else:
+                    st.error(f"Erro ao atualizar: {res.text}")
 
 # ==========================================
-# SEÇÃO 4: HISTÓRICO E FILTROS
+# SEÇÃO 4: HISTÓRICO E EDIÇÃO TOTAL
 # ==========================================
 elif menu == "4. Histórico e Filtros":
-    st.title("Histórico Geral e Filtros")
+    st.title("📋 Histórico Geral e Edição de Entradas")
     
     if df.empty:
         st.info("Nenhuma entrada cadastrada.")
     else:
-        st.subheader(" Filtros Avançados (Multisseleção)")
+        st.subheader("🔍 Filtros Avançados")
         c1, c2, c3 = st.columns(3)
         
         filtro_tipo = c1.multiselect("Modalidade/Tipo", df['tipo'].unique(), default=df['tipo'].unique())
@@ -484,9 +486,76 @@ elif menu == "4. Histórico e Filtros":
             (df['dono_da_conta'].isin(filtro_dono))
         ]
         
-        st.write(f"Exibindo **{len(df_filtrado)}** registros encontrados:")
-        
         cols_para_exibir = ['data_hora_jogo', 'tipo', 'casa_de_aposta', 'dono_da_conta', 'estrategia', 'resultado', 'valor_investido', 'retorno_bruto', 'lucro']
         cols_existentes = [c for c in cols_para_exibir if c in df_filtrado.columns]
         
         st.dataframe(df_filtrado[cols_existentes], use_container_width=True)
+
+        st.markdown("---")
+        st.subheader("✏️ Editar ou Excluir Qualquer Entrada")
+        
+        apostas_todas = df.apply(
+            lambda r: f"ID: {r['id'][:4]}... | {r['tipo']} | {r['casa_de_aposta']} | Status: {r['resultado']} | Investido: R$ {r['valor_investido']:.2f}", axis=1
+        )
+        
+        id_edit = st.selectbox(
+            "Selecione a entrada que deseja alterar:", 
+            options=df['id'].tolist(),
+            format_func=lambda x: apostas_todas[df['id'] == x].values[0]
+        )
+        
+        registro = df[df['id'] == id_edit].iloc[0]
+        
+        col_ed1, col_ed2 = st.columns(2)
+        
+        with col_ed1:
+            edit_casa = st.text_input("Casa de Aposta", value=str(registro['casa_de_aposta']))
+            edit_dono = st.text_input("Dono da Conta", value=str(registro['dono_da_conta']))
+            edit_investido = st.number_input("Valor Investido (R$)", value=float(registro['valor_investido']), min_value=0.01, step=1.0)
+            edit_resultado = st.selectbox(
+                "Resultado / Status", 
+                ["Pendente", "Green", "Concluído (Green)", "Red", "Cashout Parcial"],
+                index=["Pendente", "Green", "Concluído (Green)", "Red", "Cashout Parcial"].index(registro['resultado']) if registro['resultado'] in ["Pendente", "Green", "Concluído (Green)", "Red", "Cashout Parcial"] else 0
+            )
+
+        with col_ed2:
+            edit_estrategia = st.text_input("Estratégia", value=str(registro['estrategia']))
+            edit_retorno = st.number_input("Valor Final / Retorno Bruto (R$)", value=float(registro['retorno_bruto']), min_value=0.0, step=1.0)
+            
+            if registro['tipo'] == "Sports Betting":
+                edit_data = st.text_input("Data e Hora do Jogo", value=str(registro['data_hora_jogo']) if registro['data_hora_jogo'] else "")
+            else:
+                edit_data = None
+
+        col_b1, col_b2 = st.columns(2)
+        
+        if col_b1.button("💾 Salvar Alterações"):
+            url = f"{SUPABASE_URL.rstrip('/')}/rest/v1/apostas?id=eq.{id_edit}"
+            dados_atualizados = {
+                "casa_de_aposta": edit_casa,
+                "dono_da_conta": edit_dono,
+                "valor_investido": edit_investido,
+                "resultado": edit_resultado,
+                "estrategia": edit_estrategia,
+                "retorno_bruto": edit_retorno
+            }
+            if edit_data is not None:
+                dados_atualizados["data_hora_jogo"] = edit_data
+                
+            res = requests.patch(url, json=dados_atualizados, headers=get_headers())
+            if res.status_code in [200, 204]:
+                st.success("Entrada atualizada com sucesso!")
+                carregar_dados.clear()
+                st.rerun()
+            else:
+                st.error(f"Erro ao salvar alterações: {res.text}")
+
+        if col_b2.button("🗑️ Excluir Entrada"):
+            url = f"{SUPABASE_URL.rstrip('/')}/rest/v1/apostas?id=eq.{id_edit}"
+            res = requests.delete(url, headers=get_headers())
+            if res.status_code in [200, 204]:
+                st.success("Entrada excluída com sucesso!")
+                carregar_dados.clear()
+                st.rerun()
+            else:
+                st.error(f"Erro ao excluir: {res.text}")
