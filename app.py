@@ -1,3 +1,4 @@
+import requests
 import streamlit as st
 from supabase import create_client
 import pandas as pd
@@ -7,25 +8,22 @@ st.set_page_config(page_title="Gestão de Banca", layout="wide")
 
 # CONEXÃO COM O SUPABASE
 SUPABASE_URL = "https://nsrcevzonxssbtwtmuro.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zcmNldnpvbnhzc2J0d3RtdXJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2MTA5NzgsImV4cCI6MjEwMDE4Njk3OH0.PFJuxdg8rIKxwn5glfCeypdeuLfL0zhmPKYliesVA98"
+SUPABASE_KEY = "SUA_CHAVE_ANON_AQUI"
 
 @st.cache_resource
 def init_supabase():
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
+    return create_client(
+        supabase_url=SUPABASE_URL.strip(),
+        supabase_key=SUPABASE_KEY.strip()
+    )
 
 supabase = init_supabase()
-
-import requests
-import streamlit as st
-from supabase import create_client
-import pandas as pd
-from datetime import datetime, timezone
-
-st.set_page_config(page_title="Gestão de Banca", layout="wide")
 
 # --- SESSÃO E LOGIN ---
 if "usuario_logado" not in st.session_state:
     st.session_state.usuario_logado = None
+if "access_token" not in st.session_state:
+    st.session_state.access_token = None
 
 if st.session_state.usuario_logado is None:
     st.title("🔒 Login")
@@ -37,21 +35,21 @@ if st.session_state.usuario_logado is None:
         if not email or not senha:
             st.warning("Preencha e-mail e senha.")
         else:
-            # Login via API HTTP Direta
             login_url = f"{SUPABASE_URL.rstrip('/')}/auth/v1/token?grant_type=password"
             headers = {
                 "apikey": SUPABASE_KEY.strip(),
                 "Content-Type": "application/json"
             }
-            payload = {
-                "email": email,
-                "password": senha
-            }
+            payload = {"email": email, "password": senha}
             
             res = requests.post(login_url, json=payload, headers=headers)
             if res.status_code == 200:
                 dados = res.json()
                 st.session_state.usuario_logado = dados["user"]
+                st.session_state.access_token = dados["access_token"]
+                
+                # Autentica o cliente Supabase com o token do usuário
+                supabase.postgrest.auth(dados["access_token"])
                 st.success("Login efetuado com sucesso!")
                 st.rerun()
             else:
@@ -65,16 +63,12 @@ if st.session_state.usuario_logado is None:
         elif len(senha) < 6:
             st.warning("A senha precisa ter pelo menos 6 caracteres.")
         else:
-            # Cadastro via API HTTP Direta
             signup_url = f"{SUPABASE_URL.rstrip('/')}/auth/v1/signup"
             headers = {
                 "apikey": SUPABASE_KEY.strip(),
                 "Content-Type": "application/json"
             }
-            payload = {
-                "email": email,
-                "password": senha
-            }
+            payload = {"email": email, "password": senha}
             
             res = requests.post(signup_url, json=payload, headers=headers)
             if res.status_code in [200, 201]:
@@ -84,21 +78,30 @@ if st.session_state.usuario_logado is None:
                 erro_msg = erro_info.get("msg") or erro_info.get("error_description") or res.text
                 st.error(f"Erro ao criar conta: {erro_msg}")
     st.stop()
+
+# Reorganiza autorização no Supabase se já estiver logado
+if st.session_state.access_token:
+    supabase.postgrest.auth(st.session_state.access_token)
+
 # --- BUSCA DE DADOS GERAIS ---
 @st.cache_data(ttl=60)
-def carregar_dados():
-    res = supabase.table("apostas").select("*").execute()
-    df = pd.DataFrame(res.data)
-    if not df.empty:
-        # Converter a data de lançamento interna para datetime para poder filtrar semana/mês
-        df['created_at'] = pd.to_datetime(df['created_at'])
-        df['lucro'] = df['retorno_bruto'] - df['valor_investido']
-    return df
+def carregar_dados(user_id, token):
+    try:
+        supabase.postgrest.auth(token)
+        res = supabase.table("apostas").select("*").eq("user_id", user_id).execute()
+        df = pd.DataFrame(res.data)
+        if not df.empty:
+            df['created_at'] = pd.to_datetime(df['created_at'])
+            df['lucro'] = df['retorno_bruto'] - df['valor_investido']
+        return df
+    except Exception as e:
+        st.error(f"Erro ao carregar dados: {e}")
+        return pd.DataFrame()
 
-df = carregar_dados()
+df = carregar_dados(st.session_state.usuario_logado["id"], st.session_state.access_token)
 
 # --- BARRA LATERAL (MENU) ---
-st.sidebar.write(f"👤 **{st.session_state.usuario_logado.email}**")
+st.sidebar.write(f"👤 **{st.session_state.usuario_logado['email']}**")
 menu = st.sidebar.radio(
     "Navegação", 
     ["1. Dashboard & KPIs", "2. Nova Entrada", "3. Entradas Pendentes", "4. Histórico e Filtros"]
@@ -106,6 +109,7 @@ menu = st.sidebar.radio(
 
 if st.sidebar.button("Sair"):
     st.session_state.usuario_logado = None
+    st.session_state.access_token = None
     st.rerun()
 
 # ==========================================
@@ -117,27 +121,24 @@ if menu == "1. Dashboard & KPIs":
     if df.empty:
         st.info("Sem dados. Vá para 'Nova Entrada' para começar.")
     else:
-        # Usando a data interna automatizada para filtrar semana e mês
         agora = datetime.now(timezone.utc)
         
-        df_mensal = df[df['created_at'].dt.month == agora.month]
+        df_mensal = df[df['created_at'].dt.month == agora.month] if 'created_at' in df.columns else df
         uma_semana_atras = agora - pd.Timedelta(days=7)
-        df_semanal = df[df['created_at'] >= uma_semana_atras]
+        df_semanal = df[df['created_at'] >= uma_semana_atras] if 'created_at' in df.columns else df
         
-        # Cálculos de ROI
-        lucro_sem = df_semanal['lucro'].sum()
-        investido_sem = df_semanal['valor_investido'].sum()
+        lucro_sem = df_semanal['lucro'].sum() if 'lucro' in df_semanal.columns else 0.0
+        investido_sem = df_semanal['valor_investido'].sum() if 'valor_investido' in df_semanal.columns else 0.0
         roi_sem = (lucro_sem / investido_sem * 100) if investido_sem > 0 else 0
         
-        lucro_mes = df_mensal['lucro'].sum()
-        investido_mes = df_mensal['valor_investido'].sum()
+        lucro_mes = df_mensal['lucro'].sum() if 'lucro' in df_mensal.columns else 0.0
+        investido_mes = df_mensal['valor_investido'].sum() if 'valor_investido' in df_mensal.columns else 0.0
         roi_mes = (lucro_mes / investido_mes * 100) if investido_mes > 0 else 0
         
-        lucro_total = df['lucro'].sum()
-        abertas = df[df['resultado'] == 'Pendente']
-        valor_aberto = abertas['valor_investido'].sum()
+        lucro_total = df['lucro'].sum() if 'lucro' in df.columns else 0.0
+        abertas = df[df['resultado'] == 'Pendente'] if 'resultado' in df.columns else pd.DataFrame()
+        valor_aberto = abertas['valor_investido'].sum() if not abertas.empty else 0.0
 
-        # Layout dos KPIs
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("ROI Semanal", f"{roi_sem:.2f}%", f"R$ {lucro_sem:.2f}")
         c2.metric("ROI Mensal", f"{roi_mes:.2f}%", f"R$ {lucro_mes:.2f}")
@@ -145,7 +146,7 @@ if menu == "1. Dashboard & KPIs":
         c4.metric("Em Aberto (Pendentes)", f"{len(abertas)} Entradas", f"R$ {valor_aberto:.2f}", delta_color="off")
 
 # ==========================================
-# SEÇÃO 2: NOVA ENTRADA (FORMULÁRIOS CONDICIONAIS)
+# SEÇÃO 2: NOVA ENTRADA
 # ==========================================
 elif menu == "2. Nova Entrada":
     st.title("➕ Registrar Entrada")
@@ -162,7 +163,6 @@ elif menu == "2. Nova Entrada":
         retorno_bruto = 0.0
         data_hora_manual = ""
         
-        # --- LÓGICA: SPORTS BETTING ---
         if tipo_entrada == "Sports Betting":
             estrategia = st.selectbox("Estratégia", ["Cashout", "Punter", "Delay", "Duplo Green", "Surebet", "Bug", "Outros"])
             
@@ -185,7 +185,6 @@ elif menu == "2. Nova Entrada":
             if estrategia in ["Duplo Green", "Surebet"]:
                 st.warning("⚠️ Entrada marcada como estratégia múltipla.")
                 
-        # --- LÓGICA: CASSINO ---
         elif tipo_entrada == "Cassino":
             estrategia = st.selectbox("Estratégia", ["Deposite e ganhe", "Deposite e jogue", "Bug", "Missão", "Outros"])
             resultado = st.selectbox("Resultado Inicial", ["Pendente", "Concluído (Green)", "Red"])
@@ -197,6 +196,7 @@ elif menu == "2. Nova Entrada":
 
         if st.form_submit_button("Salvar Entrada"):
             dados = {
+                "user_id": st.session_state.usuario_logado["id"],
                 "tipo": tipo_entrada,
                 "casa_de_aposta": casa_de_aposta,
                 "dono_da_conta": dono_da_conta,
@@ -212,12 +212,12 @@ elif menu == "2. Nova Entrada":
             st.rerun()
 
 # ==========================================
-# SEÇÃO 3: ENTRADAS PENDENTES E CLASSIFICAÇÃO
+# SEÇÃO 3: ENTRADAS PENDENTES
 # ==========================================
 elif menu == "3. Entradas Pendentes":
     st.title("⏳ Entradas Pendentes / A Classificar")
     
-    if df.empty:
+    if df.empty or 'resultado' not in df.columns:
         st.info("Nenhuma entrada cadastrada.")
     else:
         df_pendentes = df[df['resultado'] == 'Pendente']
@@ -288,7 +288,6 @@ elif menu == "4. Histórico e Filtros":
         filtro_casa = c4.multiselect("Casa de Aposta", df['casa_de_aposta'].unique(), default=df['casa_de_aposta'].unique())
         filtro_dono = c5.multiselect("Dono da Conta", df['dono_da_conta'].unique(), default=df['dono_da_conta'].unique())
         
-        # Aplicação dos Filtros
         df_filtrado = df[
             (df['tipo'].isin(filtro_tipo)) &
             (df['resultado'].isin(filtro_status)) &
