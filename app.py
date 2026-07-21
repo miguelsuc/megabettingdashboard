@@ -47,9 +47,6 @@ if st.session_state.usuario_logado is None:
                 dados = res.json()
                 st.session_state.usuario_logado = dados["user"]
                 st.session_state.access_token = dados["access_token"]
-                
-                # Autentica o cliente Supabase com o token do usuário
-                supabase.postgrest.auth(dados["access_token"])
                 st.success("Login efetuado com sucesso!")
                 st.rerun()
             else:
@@ -79,21 +76,34 @@ if st.session_state.usuario_logado is None:
                 st.error(f"Erro ao criar conta: {erro_msg}")
     st.stop()
 
-# Reorganiza autorização no Supabase se já estiver logado
-if st.session_state.access_token:
-    supabase.postgrest.auth(st.session_state.access_token)
+# Helper para requisições na API REST do Supabase com Token
+def get_headers():
+    return {
+        "apikey": SUPABASE_KEY.strip(),
+        "Authorization": f"Bearer {st.session_state.access_token}",
+        "Content-Type": "application/json"
+    }
 
 # --- BUSCA DE DADOS GERAIS ---
 @st.cache_data(ttl=60)
 def carregar_dados(user_id, token):
     try:
-        supabase.postgrest.auth(token)
-        res = supabase.table("apostas").select("*").eq("user_id", user_id).execute()
-        df = pd.DataFrame(res.data)
-        if not df.empty:
-            df['created_at'] = pd.to_datetime(df['created_at'])
-            df['lucro'] = df['retorno_bruto'] - df['valor_investido']
-        return df
+        url = f"{SUPABASE_URL.rstrip('/')}/rest/v1/apostas?user_id=eq.{user_id}&select=*"
+        headers = {
+            "apikey": SUPABASE_KEY.strip(),
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+        res = requests.get(url, headers=headers)
+        if res.status_code == 200:
+            df = pd.DataFrame(res.json())
+            if not df.empty:
+                df['created_at'] = pd.to_datetime(df['created_at'])
+                df['lucro'] = df['retorno_bruto'] - df['valor_investido']
+            return df
+        else:
+            st.error(f"Erro ao carregar dados: {res.text}")
+            return pd.DataFrame()
     except Exception as e:
         st.error(f"Erro ao carregar dados: {e}")
         return pd.DataFrame()
@@ -119,7 +129,7 @@ if menu == "1. Dashboard & KPIs":
     st.title("📊 Indicadores de Desempenho")
     
     if df.empty:
-        st.info("Sem dados. Vá para 'Nova Entrada' para começar.")
+        st.info("Sem dados cadastrados. Clique na opção '2. Nova Entrada' no menu da esquerda para registrar!")
     else:
         agora = datetime.now(timezone.utc)
         
@@ -206,10 +216,15 @@ elif menu == "2. Nova Entrada":
                 "retorno_bruto": retorno_bruto,
                 "data_hora_jogo": data_hora_manual if tipo_entrada == "Sports Betting" else None
             }
-            supabase.table("apostas").insert(dados).execute()
-            st.success("Entrada salva com sucesso!")
-            carregar_dados.clear()
-            st.rerun()
+            url = f"{SUPABASE_URL.rstrip('/')}/rest/v1/apostas"
+            res = requests.post(url, json=dados, headers=get_headers())
+            
+            if res.status_code in [200, 201]:
+                st.success("Entrada salva com sucesso!")
+                carregar_dados.clear()
+                st.rerun()
+            else:
+                st.error(f"Erro ao salvar: {res.text}")
 
 # ==========================================
 # SEÇÃO 3: ENTRADAS PENDENTES
@@ -259,14 +274,19 @@ elif menu == "3. Entradas Pendentes":
                     st.info("Retorno definido como R$ 0.00")
                 
                 if st.form_submit_button("Confirmar Classificação"):
-                    supabase.table("apostas").update({
+                    url = f"{SUPABASE_URL.rstrip('/')}/rest/v1/apostas?id=eq.{id_selecionado}"
+                    patch_data = {
                         "resultado": novo_resultado,
                         "retorno_bruto": novo_retorno
-                    }).eq("id", id_selecionado).execute()
+                    }
+                    res = requests.patch(url, json=patch_data, headers=get_headers())
                     
-                    st.success("Entrada classificada com sucesso!")
-                    carregar_dados.clear()
-                    st.rerun()
+                    if res.status_code in [200, 204]:
+                        st.success("Entrada classificada com sucesso!")
+                        carregar_dados.clear()
+                        st.rerun()
+                    else:
+                        st.error(f"Erro ao atualizar: {res.text}")
 
 # ==========================================
 # SEÇÃO 4: HISTÓRICO E FILTROS
