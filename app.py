@@ -37,12 +37,27 @@ if st.session_state.usuario_logado is None:
         if not email or not senha:
             st.warning("Preencha e-mail e senha.")
         else:
-            try:
-                resposta = supabase.auth.sign_in_with_password({"email": email, "password": senha})
-                st.session_state.usuario_logado = resposta.user
+            # Login via API HTTP Direta
+            login_url = f"{SUPABASE_URL.rstrip('/')}/auth/v1/token?grant_type=password"
+            headers = {
+                "apikey": SUPABASE_KEY.strip(),
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "email": email,
+                "password": senha
+            }
+            
+            res = requests.post(login_url, json=payload, headers=headers)
+            if res.status_code == 200:
+                dados = res.json()
+                st.session_state.usuario_logado = dados["user"]
+                st.success("Login efetuado com sucesso!")
                 st.rerun()
-            except Exception as e:
-                st.error("E-mail ou senha incorretos.")
+            else:
+                erro_info = res.json()
+                erro_msg = erro_info.get("error_description") or erro_info.get("msg") or "E-mail ou senha incorretos."
+                st.error(f"Erro no login: {erro_msg}")
 
     if c2.button("Criar Conta"):
         if not email or not senha:
@@ -50,7 +65,7 @@ if st.session_state.usuario_logado is None:
         elif len(senha) < 6:
             st.warning("A senha precisa ter pelo menos 6 caracteres.")
         else:
-            # Requisição HTTP direta para a API de Autenticação do Supabase (GoTrue)
+            # Cadastro via API HTTP Direta
             signup_url = f"{SUPABASE_URL.rstrip('/')}/auth/v1/signup"
             headers = {
                 "apikey": SUPABASE_KEY.strip(),
@@ -65,7 +80,8 @@ if st.session_state.usuario_logado is None:
             if res.status_code in [200, 201]:
                 st.success("Conta criada com sucesso! Clique em 'Entrar' para acessar.")
             else:
-                erro_msg = res.json().get("msg") or res.json().get("error_description") or res.text
+                erro_info = res.json()
+                erro_msg = erro_info.get("msg") or erro_info.get("error_description") or res.text
                 st.error(f"Erro ao criar conta: {erro_msg}")
     st.stop()
 # --- BUSCA DE DADOS GERAIS ---
