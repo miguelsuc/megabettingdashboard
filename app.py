@@ -15,6 +15,27 @@ def init_supabase():
 
 supabase = init_supabase()
 
+import requests
+import streamlit as st
+from supabase import create_client
+import pandas as pd
+from datetime import datetime, timezone
+
+st.set_page_config(page_title="Gestão de Banca", layout="wide")
+
+# CONEXÃO COM O SUPABASE
+SUPABASE_URL = "https://nsrcevzonxssbtwtmuro.supabase.co"
+SUPABASE_KEY = "SUA_CHAVE_ANON_AQUI"
+
+@st.cache_resource
+def init_supabase():
+    return create_client(
+        supabase_url=SUPABASE_URL.strip(),
+        supabase_key=SUPABASE_KEY.strip()
+    )
+
+supabase = init_supabase()
+
 # --- SESSÃO E LOGIN ---
 if "usuario_logado" not in st.session_state:
     st.session_state.usuario_logado = None
@@ -42,16 +63,23 @@ if st.session_state.usuario_logado is None:
         elif len(senha) < 6:
             st.warning("A senha precisa ter pelo menos 6 caracteres.")
         else:
-            try:
-                # Método atualizado e compatível do Supabase Python
-                resposta = supabase.auth.sign_up({"email": email, "password": senha})
-                
-                if resposta.user:
-                    st.success("Account criada com sucesso! Tente clicar em 'Entrar' agora.")
-                else:
-                    st.info("Cadastro solicitado. Verifique seu e-mail se necessário.")
-            except Exception as e:
-                st.error(f"Erro no cadastro: {e}")
+            # Requisição HTTP direta para a API de Autenticação do Supabase (GoTrue)
+            signup_url = f"{SUPABASE_URL.rstrip('/')}/auth/v1/signup"
+            headers = {
+                "apikey": SUPABASE_KEY.strip(),
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "email": email,
+                "password": senha
+            }
+            
+            res = requests.post(signup_url, json=payload, headers=headers)
+            if res.status_code in [200, 201]:
+                st.success("Conta criada com sucesso! Clique em 'Entrar' para acessar.")
+            else:
+                erro_msg = res.json().get("msg") or res.json().get("error_description") or res.text
+                st.error(f"Erro ao criar conta: {erro_msg}")
     st.stop()
 # --- BUSCA DE DADOS GERAIS ---
 @st.cache_data(ttl=60)
