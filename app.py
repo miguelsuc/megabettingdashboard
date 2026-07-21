@@ -12,6 +12,34 @@ st.set_page_config(page_title="Gestão de Banca", layout="wide")
 # DESIGN VIBECODE SYSTEM (CSS CUSTOMIZADO)
 # ==========================================
 st.markdown("""
+
+/* Ajuste de tamanho dos textos da Barra Lateral */
+    
+    /* 1. Nome/E-mail do usuário no topo da sidebar */
+    [data-testid="stSidebar"] .stMarkdown p {
+        font-size: 18px !important;
+        font-weight: 600 !important;
+    }
+
+    /* 2. Título da seção (ex: 'Navegação') */
+    [data-testid="stSidebar"] label {
+        font-size: 18px !important;
+        font-weight: 700 !important;
+        color: #60A5FA !important; /* Azul neon para destacar */
+    }
+
+    /* 3. Opções do menu (Radio Buttons: 1. Dashboard, 2. Nova Entrada, etc) */
+    [data-testid="stSidebar"] div[role="radiogroup"] label p {
+        font-size: 17px !important;
+        font-weight: 500 !important;
+    }
+
+    /* 4. Botão 'Sair' na barra lateral */
+    [data-testid="stSidebar"] .stButton > button {
+        font-size: 16px !important;
+        padding: 12px 20px !important;
+    }
+
 <style>
     /* Importação de fonte moderna e clean */
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
